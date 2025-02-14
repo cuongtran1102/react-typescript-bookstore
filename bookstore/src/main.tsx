@@ -9,6 +9,7 @@ import AboutPage from "./pages/client/about";
 import "./styles/global.scss";
 import HomePage from "./pages/client/home";
 import { App } from "antd"; //sử dụng component App của antd để bọc toàn bộ router
+import { AppContextProvider } from "./components/context/app.context";
 
 const router = createBrowserRouter([
   {
@@ -27,6 +28,14 @@ const router = createBrowserRouter([
         path: "/about",
         element: <AboutPage />,
       },
+      {
+        path: "/checkout",
+        element: <div>Check out page</div>,
+      },
+      {
+        path: "/admin",
+        element: <div>Admin page</div>,
+      },
     ],
   },
   {
@@ -43,7 +52,10 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     {/* bọc App của antd cho tất cả router để sử dụng component message, notification của antd */}
     <App>
-      <RouterProvider router={router} />
+      {/* bọc AppContextProvider cho tất cả router để các component có thể sử dụng các biến: isAuthenticated, setIsAuthenticated, currentUser, setCurrentUser, ...*/}
+      <AppContextProvider>
+        <RouterProvider router={router} />
+      </AppContextProvider>
     </App>
   </StrictMode>
 );

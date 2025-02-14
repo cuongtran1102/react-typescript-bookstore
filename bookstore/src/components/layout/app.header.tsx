@@ -1,5 +1,8 @@
+import { useAppContext } from "../context/app.context";
+
 const AppHeader = () => {
-  return <div>Header</div>;
+  const { currentUser } = useAppContext();
+  return <div>{JSON.stringify(currentUser)}</div>;
 };
 
 export default AppHeader;

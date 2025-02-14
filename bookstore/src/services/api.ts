@@ -25,4 +25,11 @@ const registerAPI = async (
   });
   return res;
 };
-export { loginAPI, registerAPI };
+
+const fetchUserInfoAPI = async () => {
+  const urlBackEnd = "/api/v1/auth/account";
+  let res = await instance.get<IBackendRes<IUserData>>(urlBackEnd);
+  return res;
+};
+
+export { loginAPI, registerAPI, fetchUserInfoAPI };
