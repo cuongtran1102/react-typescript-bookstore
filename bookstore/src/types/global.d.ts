@@ -20,7 +20,7 @@ declare global {
       pages: number;
       total: number;
     };
-    results: T[]; //result có kiểu là 1 array các generics(T)
+    result: T[]; //result có kiểu là 1 array các generics(T)
   }
 
   interface ILogin {
@@ -73,5 +73,11 @@ declare global {
   //interface này phục vụ cho hàm: fetchUserInfo bên api.ts
   interface IUserData {
     user: IUserInfo; //thuộc tính user sẽ có type: interface IUserInfo
+  }
+
+  interface IUserTable extends IUserInfo {
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
   }
 }

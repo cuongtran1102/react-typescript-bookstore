@@ -10,6 +10,14 @@ import "./styles/global.scss";
 import HomePage from "./pages/client/home";
 import { App } from "antd"; //sử dụng component App của antd để bọc toàn bộ router
 import { AppContextProvider } from "./components/context/app.context";
+import ProtectedRoute from "./components/layout/protected.route";
+import LayoutAdmin from "./components/layout/layout.admin";
+import DashBoardPage from "./pages/admin/dashboard";
+import ManageBookPage from "./pages/admin/manage.book";
+import ManageUserPage from "./pages/admin/manage.user";
+import ManageOrderPage from "./pages/admin/manage.order";
+import { ConfigProvider } from "antd";
+import enUS from "antd/es/locale/en_US";
 
 const router = createBrowserRouter([
   {
@@ -21,20 +29,59 @@ const router = createBrowserRouter([
         element: <HomePage />,
       },
       {
-        path: "/book",
+        path: "book",
         element: <BookPage />,
       },
       {
-        path: "/about",
+        path: "about",
         element: <AboutPage />,
       },
       {
-        path: "/checkout",
-        element: <div>Check out page</div>,
+        path: "checkout",
+        element: (
+          <ProtectedRoute>
+            {/* bọc các components con mà ProtectedRoute muốn bảo vệ */}
+            <div>Check out page</div>
+          </ProtectedRoute>
+        ),
+      },
+    ],
+  },
+  {
+    path: "/admin",
+    element: <LayoutAdmin />,
+    children: [
+      {
+        index: true,
+        element: (
+          <ProtectedRoute>
+            <DashBoardPage />
+          </ProtectedRoute>
+        ),
       },
       {
-        path: "/admin",
-        element: <div>Admin page</div>,
+        path: "book",
+        element: (
+          <ProtectedRoute>
+            <ManageBookPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "order",
+        element: (
+          <ProtectedRoute>
+            <ManageOrderPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "user",
+        element: (
+          <ProtectedRoute>
+            <ManageUserPage />
+          </ProtectedRoute>
+        ),
       },
     ],
   },
@@ -54,7 +101,9 @@ createRoot(document.getElementById("root")!).render(
     <App>
       {/* bọc AppContextProvider cho tất cả router để các component có thể sử dụng các biến: isAuthenticated, setIsAuthenticated, currentUser, setCurrentUser, ...*/}
       <AppContextProvider>
-        <RouterProvider router={router} />
+        <ConfigProvider locale={enUS}>
+          <RouterProvider router={router} />
+        </ConfigProvider>
       </AppContextProvider>
     </App>
   </StrictMode>

@@ -28,8 +28,25 @@ const registerAPI = async (
 
 const fetchUserInfoAPI = async () => {
   const urlBackEnd = "/api/v1/auth/account";
-  let res = await instance.get<IBackendRes<IUserData>>(urlBackEnd);
+  let res = await instance.get<IBackendRes<IUserData>>(urlBackEnd, {
+    headers: {
+      delay: 1000,
+    },
+  });
   return res;
 };
 
-export { loginAPI, registerAPI, fetchUserInfoAPI };
+const logoutAPI = async () => {
+  const urlBackEnd = "/api/v1/auth/logout";
+  let res = await instance.post<IBackendRes<string>>(urlBackEnd);
+  return res;
+};
+
+const fetchUserAPI = async (query: string) => {
+  const urlBackEnd = `/api/v1/user?${query}`;
+  let res = await instance.get<IBackendRes<IModelPaginate<IUserTable>>>(
+    urlBackEnd
+  );
+  return res;
+};
+export { loginAPI, registerAPI, fetchUserInfoAPI, logoutAPI, fetchUserAPI };
