@@ -49,4 +49,28 @@ const fetchUserAPI = async (query: string) => {
   );
   return res;
 };
-export { loginAPI, registerAPI, fetchUserInfoAPI, logoutAPI, fetchUserAPI };
+
+const createUserAPI = async (
+  fullName: string,
+  email: string,
+  password: string,
+  phone: string
+) => {
+  const urlBackEnd = "/api/v1/user";
+  let res = await instance.post<IBackendRes<string>>(urlBackEnd, {
+    fullName,
+    email,
+    password,
+    phone,
+  });
+  return res;
+};
+
+export {
+  loginAPI,
+  registerAPI,
+  fetchUserInfoAPI,
+  logoutAPI,
+  fetchUserAPI,
+  createUserAPI,
+};
