@@ -7,13 +7,15 @@ import {
 } from "@ant-design/icons";
 import type { ActionType, ProColumns } from "@ant-design/pro-components";
 import { ProTable } from "@ant-design/pro-components";
-import { Button } from "antd";
+import { Button, Popconfirm, App } from "antd";
 import { useRef, useState } from "react";
-import { fetchUserAPI } from "../../../services/api";
+import { deleteUserAPI, fetchUserAPI } from "../../../services/api";
 import { dateRangeValidate } from "../../../services/helper";
 import DetailUser from "./detail.user";
 import CreateUserModal from "./create.user";
 import ImportUser from "./import.user";
+import { CSVLink } from "react-csv";
+import UpdateUser from "./update.user";
 
 //hàm tạo hiệu ứng loadding khi lấy dữ liệu user từ api cho table user
 const waitTimePromise = async (time: number = 100) => {
@@ -51,13 +53,42 @@ const TableUser = () => {
   //state để open model import user bằng file excel
   const [openModalImport, setOpenModalImport] = useState<boolean>(false);
 
+  //state để lưu trữ các user đang hiển thị trên table user(khi export fiel csv dẽ chỉ lưu thông tin các user đang hiển thị trên table)
+  const [currentDataTable, setCurrentDataTable] = useState<IUserTable[]>([]);
+
+  const [openModalUpdate, setOpenModalUpdate] = useState<boolean>(false);
+
+  const [dataUpdate, setDataUpdate] = useState<IUserTable | null>(null);
+
   //state meta sẽ lưu 1 đối tượng chứa các thông tin như: current, pageSize,... phục vụ cho việc phân trang table user
   const [meta, setMeta] = useState({
     current: 1,
     pageSize: 5,
-    pages: 2,
-    total: 8,
+    pages: 0,
+    total: 0,
   });
+
+  //state lưu trang thái loading khi click button delete user
+  const [deleteUser, setDeleteUser] = useState<boolean>(false);
+
+  const { message, notification } = App.useApp();
+
+  //hàm delete user
+  const handleDeleteUser = async (_id: string) => {
+    setDeleteUser(true);
+    //gọi api delete user
+    let res = await deleteUserAPI(_id);
+    if (res?.data) {
+      message.success("Delete user success");
+      refreshTable(); //refresh table user sau khi delete user
+    } else {
+      notification.error({
+        message: "Delete user error!",
+        description: res.message,
+      });
+    }
+    setDeleteUser(false);
+  };
 
   //columns: 1 aray chứa các object, mỗi object định nghĩa các cột cho table
   //mỗi object thuộc aray columns có kiểu ProColumns và kế thừa interface: IUserTable(interface chứa thông tin user)
@@ -122,8 +153,26 @@ const TableUser = () => {
       render(dom, entity, index, action, schema) {
         return (
           <>
-            <EditTwoTone style={{ marginRight: "15px" }} />
-            <DeleteTwoTone />
+            <EditTwoTone
+              onClick={() => {
+                setOpenModalUpdate(true);
+                setDataUpdate(entity);
+              }}
+              style={{ marginRight: "15px" }}
+            />
+            {/* sử dụng component Popconfirm để delete user */}
+            <Popconfirm
+              title="Delete the user"
+              description="Are you sure to delete this user?"
+              onConfirm={() => {
+                handleDeleteUser(entity._id); //gọi hàm delete user ở onConfirm
+              }}
+              okText="Yes"
+              cancelText="No"
+              okButtonProps={{ loading: deleteUser }} //thiết lập trạng thái loading cho button delete
+            >
+              <DeleteTwoTone />
+            </Popconfirm>
           </>
         );
       },
@@ -145,55 +194,107 @@ const TableUser = () => {
           cardBordered
           //thuộc tính request của table user phụ trách việc call api lấy dữ liệu cho table
           request={async (params, sort, filter) => {
-            //loading 1s trước khi gọi api lấy dữ liệu user
-            await waitTime(1000);
+            //-----------------------------------code cũ--------------------------------------//
+            //   //loading 1s trước khi gọi api lấy dữ liệu user
+            //   await waitTime(1000);
 
-            //params là 1 object và mặc định có các thuộc tính như:params.current, params.pageSize, params.keyword
-            //params sẽ có thêm các thuộc tính trong trường dataIndex của columns(params.email, params.fullName) nếu không có trường hideInSearch: true
+            //   //params là 1 object và mặc định có các thuộc tính như:params.current, params.pageSize, params.keyword
+            //   //params sẽ có thêm các thuộc tính trong trường dataIndex của columns(params.email, params.fullName) nếu không có trường hideInSearch: true
 
-            let query = "";
-            //nếu có params(params !== null or undefine)
-            if (params) {
-              //nối chuỗi query với params.current và params.pageSize để lấy các user ở page = params.current và số lượng user trên page: params.pageSize
-              query += `current=${params.current}&pageSize=${params.pageSize}`;
-              if (params.email) {
-                //nối chuỗi query với params.email trong trường hợp admin tìm kiếm user by email
-                query += `&email=/${params.email}/i`;
-              }
-              //tương tự với email
-              if (params.fullName) {
-                query += `&fullName=/${params.fullName}/i`;
-              }
+            //   let query = "";
+            //   //nếu có params(params !== null or undefine)
+            //   if (params) {
+            //     //nối chuỗi query với params.current và params.pageSize để lấy các user ở page = params.current và số lượng user trên page: params.pageSize
+            //     query += `current=${params.current}&pageSize=${params.pageSize}`;
+            //     if (params.email) {
+            //       //nối chuỗi query với params.email trong trường hợp admin tìm kiếm user by email
+            //       query += `&email=/${params.email}/i`;
+            //     }
+            //     //tương tự với email
+            //     if (params.fullName) {
+            //       query += `&fullName=/${params.fullName}/i`;
+            //     }
 
-              //format các date trong params.createdAtRange(là 1 array chứa 2 thông tin createdDate và endDate admin nhập để tìm user by created date)
-              const createDateRange = dateRangeValidate(params.createdAtRange);
+            //     //format các date trong params.createdAtRange(là 1 array chứa 2 thông tin createdDate và endDate admin nhập để tìm user by created date)
+            //     const createDateRange = dateRangeValidate(params.createdAtRange);
 
-              if (createDateRange) {
-                //nối chuỗi query với createDateRange đã format
-                query += `&createdAt>=${createDateRange[0]}&createdAt<=${createDateRange[1]}`;
-              }
+            //     if (createDateRange) {
+            //       //nối chuỗi query với createDateRange đã format
+            //       query += `&createdAt>=${createDateRange[0]}&createdAt<=${createDateRange[1]}`;
+            //     }
 
-              query += "&sort=-createdAt"; //mặc định sẽ sort user theo ngày tạo mới nhất
+            //     if (sort?.createdAt) {
+            //       if (sort.createdAt === "ascend") {
+            //         query += "&sort=createdAt";
+            //       } else {
+            //         query += "&sort=-createdAt";
+            //       }
+            //     } else {
+            //       query += "&sort=-createdAt"; //mặc định sẽ sort user theo ngày tạo mới nhất
+            //     }
+            //   }
 
-              if (sort?.createdAt) {
-                if (sort.createdAt === "ascend") {
-                  query += "&sort=createdAt";
-                } else {
-                  query += "&sort=-createdAt";
-                }
-              }
+            //   const res = await fetchUserAPI(query); //call api lấy dữ liệu user cho table với query
+            //   if (res.data?.meta) {
+            //     setMeta(res.data.meta);
+
+            //     setCurrentDataTable(res.data?.result ?? []);
+            //     console.log("current data table: ", currentDataTable);
+            //   }
+            //   //return 1 đối tượng(chứa data các user từ api và các thuộc tính khác: page, total,...) để fill dữ liệu cho table user
+            //   return {
+            //     data: res.data?.result as any,
+            //     page: 1,
+            //     success: true,
+            //     total: res.data?.meta.total,
+            //   };
+            // }
+
+            //------------------tối ưu code cho request của antd pro table--------------------//
+            await waitTime(1000); // Simulate loading time
+
+            const queryParams = new URLSearchParams();
+
+            // Pagination
+            queryParams.append("current", String(params?.current || 1));
+            queryParams.append("pageSize", String(params?.pageSize || 5));
+
+            // Search Filters
+            if (params?.email)
+              queryParams.append("email", `/${params.email}/i`);
+            if (params?.fullName)
+              queryParams.append("fullName", `/${params.fullName}/i`);
+
+            // Date Range Filter
+            const createDateRange = dateRangeValidate(params?.createdAtRange);
+            if (createDateRange) {
+              queryParams.append("createdAt>=", createDateRange[0].toString());
+              queryParams.append("createdAt<=", createDateRange[1].toString());
             }
 
-            const res = await fetchUserAPI(query); //call api lấy dữ liệu user cho table với query
+            // Sorting
+            const sortField = sort?.createdAt;
+            queryParams.append(
+              "sort",
+              sortField === "ascend" ? "createdAt" : "-createdAt"
+            );
+
+            // Fetch API
+            const res = await fetchUserAPI(queryParams.toString());
+
             if (res.data?.meta) {
               setMeta(res.data.meta);
+              setCurrentDataTable(res.data?.result ?? []);
+              console.log("current data table: ", currentDataTable);
             }
-            //return 1 đối tượng(chứa data các user từ api và các thuộc tính khác: page, total,...) để fill dữ liệu cho table user
+
+            console.log("check params: ", params);
+            console.log("check queryParams: ", queryParams.toString());
             return {
-              data: res.data?.result as any,
-              page: 1,
+              data: res.data?.result || [],
+              page: params?.current || 1,
               success: true,
-              total: res.data?.meta.total,
+              total: res.data?.meta?.total || 0,
             };
           }}
           //thuộc tính pagination dùng để phân trang cho table user
@@ -225,8 +326,13 @@ const TableUser = () => {
             >
               Import file
             </Button>,
-            <Button icon={<ExportOutlined />} onClick={() => {}} type="primary">
-              Export file
+            <Button icon={<ExportOutlined />} type="primary">
+              <CSVLink
+                data={currentDataTable}
+                filename="export-user-from-table.csv"
+              >
+                Export file
+              </CSVLink>
             </Button>,
           ]}
           rowKey="_id"
@@ -248,6 +354,15 @@ const TableUser = () => {
         <ImportUser
           openModalImport={openModalImport}
           setOpenModalImport={setOpenModalImport}
+          refreshTable={refreshTable}
+        />
+        {/* truyền các props cho component: Update(modal update user) */}
+        <UpdateUser
+          dataUpdate={dataUpdate}
+          setDataUpdate={setDataUpdate}
+          openModalUpdate={openModalUpdate}
+          setOpenModalUpdate={setOpenModalUpdate}
+          refreshTable={refreshTable}
         />
       </div>
     </>

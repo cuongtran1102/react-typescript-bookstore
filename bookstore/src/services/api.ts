@@ -66,6 +66,44 @@ const createUserAPI = async (
   return res;
 };
 
+//tham số: dataImport của hàm importUserAPI là 1 array các object chứa thông tin user import từ file excel
+const importUserAPI = async (
+  dataImport: {
+    fullName: string;
+    email: string;
+    password: string;
+    phone: string;
+  }[]
+) => {
+  const urlBackEnd = "/api/v1/user/bulk-create";
+  let res = await instance.post<IBackendRes<IResImport>>(
+    urlBackEnd,
+    dataImport
+  );
+  return res;
+};
+const updateUserAPI = async (_id: string, fullName: string, phone: string) => {
+  const urlBackEnd = "/api/v1/user";
+  let res = await instance.put<IBackendRes<any>>(urlBackEnd, {
+    _id,
+    fullName,
+    phone,
+  });
+  return res;
+};
+
+const deleteUserAPI = async (_id: string) => {
+  const urlBackEnd = `/api/v1/user/${_id}`;
+  let res = await instance.delete<IBackendRes<any>>(urlBackEnd);
+  return res;
+};
+
+const fetchBookAPI = async (query: string) => {
+  const urlBackEnd = `/api/v1/book?${query}`;
+  let res = await instance.get<IBackendRes<IModelPaginate<IBook>>>(urlBackEnd);
+  return res;
+};
+
 export {
   loginAPI,
   registerAPI,
@@ -73,4 +111,8 @@ export {
   logoutAPI,
   fetchUserAPI,
   createUserAPI,
+  importUserAPI,
+  updateUserAPI,
+  deleteUserAPI,
+  fetchBookAPI,
 };
